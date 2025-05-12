@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Spring Boot Auth0 Integration</title>
+</head>
+<body>
+<h1>Welcome!</h1>
+<div th:if="${user}">
+    <p>Logged in as: <span th:text="${user}"></span> (<span th:text="${email}"></span>)</p>
+    <p><a th:href="@{/profile}">View Profile</a></p>
+    <form th:action="@{/logout}" method="post">
+        <input type="submit" value="Logout"/>
+    </form>
+</div>
+<div th:unless="${user}">
+    <p><a th:href="@{/oauth2/authorization/auth0}">Login with Auth0</a></p>
+</div>
+</body>
+</html>
