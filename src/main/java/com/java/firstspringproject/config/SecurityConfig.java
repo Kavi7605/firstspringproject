@@ -65,11 +65,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/users") // disable CSRF only for POST /users
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/error", "/users").permitAll()
+                        .requestMatchers("/", "/error", "/users", "/ui", "/ui/**").permitAll()
                         .requestMatchers("/me").authenticated() // protect /me
                         .anyRequest().authenticated()
                 )

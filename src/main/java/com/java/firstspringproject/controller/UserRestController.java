@@ -26,6 +26,12 @@ public class UserRestController {
         return ResponseEntity.ok(userRepository.findAll());
     }
 
+
+    @GetMapping("/")
+    public String rootRedirect() {
+        return "redirect:/ui";
+    }
+
     @PostMapping
     public ResponseEntity<String> createUser(@RequestBody CreateUserRequest request) {
         try {
