@@ -17,14 +17,15 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/index", "/ui/**").permitAll()
-                        .requestMatchers("/api/create-user").permitAll()
-                        .requestMatchers("/api/**").authenticated() // protect all API
-                        .anyRequest().authenticated()
+                        .requestMatchers("/profile").authenticated()
+                        .requestMatchers("/api/create-user").permitAll()  // ✅ allow this
+                        .anyRequest().permitAll()
                 )
+
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt())  // ✅ enable JWT token checking
                 .oauth2Login(Customizer.withDefaults())
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**")) // disable CSRF for APIs
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
+//                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**")) // disable CSRF for APIs
                 .logout(logout -> logout.logoutSuccessHandler(oidcLogoutSuccessHandler(null)));
         return http.build();
     }
@@ -35,7 +36,7 @@ public class SecurityConfig {
         OidcClientInitiatedLogoutSuccessHandler successHandler =
                 new OidcClientInitiatedLogoutSuccessHandler(repo);
 
-        successHandler.setPostLogoutRedirectUri("http://localhost:8080/");
+        successHandler.setPostLogoutRedirectUri("http://localhost:8080/login");
         return successHandler;
     }
 }
