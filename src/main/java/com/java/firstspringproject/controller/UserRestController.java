@@ -1,64 +1,47 @@
+// src/main/java/com/java/firstspringproject/controller/UserRestController.java
 package com.java.firstspringproject.controller;
 
+import org.springframework.security.oauth2.jwt.Jwt;
 import com.java.firstspringproject.model.CreateUserRequest;
-import com.java.firstspringproject.model.User;
-import com.java.firstspringproject.repository.UserRepository;
-import com.java.firstspringproject.service.Auth0Service;
+import com.java.firstspringproject.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.*;
+//import com.java.firstspringproject.service.LogService;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api")
 public class UserRestController {
 
-    private final Auth0Service auth0Service;
-    private final UserRepository userRepository;
+    @Autowired
+    private UserService userService;
 
-    public UserRestController(Auth0Service auth0Service, UserRepository userRepository) {
-        this.auth0Service = auth0Service;
-        this.userRepository = userRepository;
-    }
-    @GetMapping
-    public ResponseEntity<?> getAllUsers() {
-        return ResponseEntity.ok(userRepository.findAll());
-    }
+//    @Autowired
+//    private LogService logService;
 
+    @GetMapping("/check-user")
+    public ResponseEntity<String> checkUser(@AuthenticationPrincipal Jwt jwt) {
+        String email = jwt.getClaimAsString("email");
+        String sub = jwt.getSubject();
+        String issuer = jwt.getIssuer().toString();
 
-    @GetMapping("/")
-    public String rootRedirect() {
-        return "redirect:/ui";
-    }
+//        logService.add("📥 Received JWT token");
+//        logService.add("🔓 Decoded JWT:");
+//        logService.add("  • subject: " + sub);
+//        logService.add("  • issuer: " + issuer);
+//        logService.add("  • email claim: " + email);
 
-    @PostMapping
-    public ResponseEntity<String> createUser(@RequestBody CreateUserRequest request) {
-        try {
-            String auth0Id = auth0Service.createAuth0User(
-                    request.getEmail(),
-                    request.getName(),
-                    request.getPassword()
-            );
-
-            User user = new User(auth0Id, request.getEmail(), request.getName());
-            userRepository.save(user);
-
-            return ResponseEntity.ok("User created with ID: " + auth0Id);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error: " + e.getMessage());
+        if (userService.isUserPresent(email)) {
+//            logService.add("✅ Local DB match found for: " + email);
+//            logService.add("✅ User successfully authenticated and authorized.");
+            return ResponseEntity.ok("✅ Authorized user: " + email);
+        } else {
+//            logService.add("❌ No user found in local DB for: " + email);
+//            logService.add("❌ Access denied.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("❌ User not found in DB: " + email);
         }
     }
-
-    @GetMapping("/me")
-    public ResponseEntity<?> getLoggedInUser(@AuthenticationPrincipal Jwt jwt) {
-        String auth0UserId = jwt.getSubject(); // e.g. auth0|abc123
-
-        return userRepository.findById(auth0UserId)
-                .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found in local DB"));
-    }
-
-
 }

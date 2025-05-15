@@ -1,23 +1,14 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <title>Spring Boot + Auth0</title>
-</head>
-<body>
-<h1>Spring Boot + Auth0 Integration</h1>
+<h2>🔐 JWT Auth Process</h2>
+<p>This service:</p>
+<ol>
+    <li>Receives a JWT Access Token from the client</li>
+    <li>Decodes and validates the token signature</li>
+    <li>Extracts the <code>email</code> claim</li>
+    <li>Checks if this user exists in the local PostgreSQL DB</li>
+    <li>If found, allows access. Otherwise, access is denied.</li>
+</ol>
 
-<form method="post" action="/ui/create-user">
-    <button type="submit">Create New User</button>
-</form>
-
-<form method="get" action="/oauth2/authorization/auth0">
-    <button type="submit">Login with Auth0</button>
-</form>
-
-<hr>
-<h2>Logs</h2>
+<h2>📜 Event Logs</h2>
 <ul>
-    <li th:each="log : ${logs}" th:text="${log}">Log entry...</li>
+    <li th:each="log : ${logs}" th:text="${log}">Log entry</li>
 </ul>
-</body>
-</html>

@@ -1,11 +1,10 @@
+// src/main/java/com/java/firstspringproject/model/CreateUserRequest.java
 package com.java.firstspringproject.model;
 
 public class CreateUserRequest {
     private String email;
     private String name;
     private String password;
-
-    public CreateUserRequest() {}
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }

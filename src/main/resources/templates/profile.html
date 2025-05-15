@@ -4,13 +4,10 @@
   <title>User Profile</title>
 </head>
 <body>
-<h1>User Profile</h1>
-<p th:if="${name}">Name: <span th:text="${name}"></span></p>
-<p th:if="${email}">Email: <span th:text="${email}"></span></p>
-<h3>Attributes:</h3>
-<ul th:if="${attributes}">
-  <li th:each="attribute : ${attributes}" th:text="${attribute.key + ': ' + attribute.value}"></li>
-</ul>
-<p><a th:href="@{/}">Back to Home</a></p>
+<h2>User Profile</h2>
+<p><strong>Email:</strong> <span th:text="${email}">email@example.com</span></p>
+<p><strong>Name:</strong> <span th:text="${name}">John Doe</span></p>
+
+<a href="/logout">Logout</a>
 </body>
 </html>
