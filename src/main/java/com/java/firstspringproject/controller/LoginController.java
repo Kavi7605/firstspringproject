@@ -9,18 +9,16 @@ public class LoginController {
 
     @GetMapping("/login")
     public String loginPage() {
-        return "login"; // your login.html
+        return "login"; // your login.html with the login button
     }
 
     @GetMapping("/auth0-login")
-    public RedirectView loginWithForcedLogout() {
-        // 1. Logs out of Auth0 SSO
-        // 2. Redirects to login page with prompt=login
+    public RedirectView loginAfterFullLogout() {
         String auth0Domain = "dev-r7dmklkhsqoapi7f.us.auth0.com";
         String clientId = "ywlHg6XqhtVnOKjE0lYHzP607yOqgvuB";
         String redirectUri = "http://localhost:8080/login/oauth2/code/auth0";
 
-        String logoutAndLoginUrl = "https://" + auth0Domain + "/v2/logout" +
+        String logoutThenLogin = "https://" + auth0Domain + "/v2/logout" +
                 "?client_id=" + clientId +
                 "&returnTo=https://" + auth0Domain + "/authorize" +
                 "?response_type=code" +
@@ -29,6 +27,6 @@ public class LoginController {
                 "&scope=openid%20profile%20email" +
                 "&prompt=login";
 
-        return new RedirectView(logoutAndLoginUrl);
+        return new RedirectView(logoutThenLogin);
     }
 }
