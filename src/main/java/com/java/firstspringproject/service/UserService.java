@@ -22,14 +22,31 @@ public class UserService {
         return userRepository.findByEmail(email).isPresent();
     }
 
-    public void createUser(CreateUserRequest request) {
-        // Save to local DB
-        User user = new User();
-        user.setEmail(request.getEmail());
-        user.setName(request.getName());
-        userRepository.save(user);
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
 
-        // Save to Auth0
-        auth0Service.createUserInAuth0(request.getEmail(), request.getPassword());
+    public void createUser(CreateUserRequest request) {
+        try {
+            // Debug log for phone number
+            System.out.println("Phone from request: " + request.getPhoneNumber());
+
+            // First create in Auth0
+            auth0Service.createUserInAuth0(
+                request.getEmail(),
+                request.getName(),
+                request.getPassword(),
+                request.getPhoneNumber()
+            );
+
+            // Only if Auth0 creation succeeds, save to local DB
+            User user = new User();
+            user.setEmail(request.getEmail());
+            user.setName(request.getName());
+            user.setPhoneNumber(request.getPhoneNumber());
+            userRepository.save(user);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create user: " + e.getMessage(), e);
+        }
     }
 }

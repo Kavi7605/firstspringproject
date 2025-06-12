@@ -13,6 +13,9 @@
     <p>
         <strong>Logged in as:</strong> <span th:text="${email}"></span> (<span th:text="${name}"></span>)
     </p>
+    <p th:if="${phoneNumber}">
+        <strong>Phone Number:</strong> <span th:text="${phoneNumber}"></span>
+    </p>
     <a href="/logout">
         <button>Logout</button>
     </a>
@@ -30,8 +33,10 @@
     <input type="text" name="email" placeholder="Email" required />
     <input type="text" name="name" placeholder="Name" required />
     <input type="password" name="password" placeholder="Password" required />
+    <input type="text" name="phoneNumber" placeholder="Phone Number (10 digits)" required minlength="10" maxlength="10" pattern="\d{10}" />
     <button type="submit">Create User</button>
 </form>
+
 
 <p id="createStatus" style="color: darkblue;"></p>
 
@@ -43,10 +48,14 @@
         const data = {
             email: formData.get('email'),
             name: formData.get('name'),
-            password: formData.get('password')
+            password: formData.get('password'),
+            phoneNumber: formData.get('phoneNumber')
         };
 
-        const response = await fetch('/api/create-user', {
+        const baseUrl = window.location.origin;
+        const createUserUrl = `${baseUrl}/api/create-user`;
+
+        const response = await fetch(createUserUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
