@@ -1,12 +1,12 @@
 package com.java.firstspringproject.service;
 
+import com.java.firstspringproject.config.Auth0Properties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
 import org.springframework.web.reactive.function.client.*;
 import reactor.core.publisher.Mono;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,23 +34,20 @@ class Auth0ServiceTest {
     @Mock
     private WebClient.ResponseSpec responseSpec;
 
+    @Mock
+    private Auth0Properties auth0Properties;
+
     private Auth0Service auth0Service;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         MockitoAnnotations.openMocks(this);
         when(webClientBuilder.build()).thenReturn(webClient);
-        auth0Service = new Auth0Service(webClientBuilder);
-        injectPrivate("clientId", "dummy-client-id");
-        injectPrivate("clientSecret", "dummy-secret");
-        injectPrivate("audience", "dummy-audience");
-        injectPrivate("domain", "dummy-domain.auth0.com");
-    }
-
-    private void injectPrivate(String fieldName, String value) throws Exception {
-        Field field = Auth0Service.class.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(auth0Service, value);
+        when(auth0Properties.getClientId()).thenReturn("dummy-client-id");
+        when(auth0Properties.getClientSecret()).thenReturn("dummy-secret");
+        when(auth0Properties.getAudience()).thenReturn("dummy-audience");
+        when(auth0Properties.getDomain()).thenReturn("dummy-domain.auth0.com");
+        auth0Service = new Auth0Service(webClientBuilder, auth0Properties);
     }
 
     @Test

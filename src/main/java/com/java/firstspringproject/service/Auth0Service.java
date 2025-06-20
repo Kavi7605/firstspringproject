@@ -1,7 +1,7 @@
 // src/main/java/com/java/firstspringproject/service/Auth0Service.java
 package com.java.firstspringproject.service;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.java.firstspringproject.config.Auth0Properties;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import java.util.Map;
@@ -9,33 +9,23 @@ import java.util.Map;
 @Service
 public class Auth0Service {
     private final WebClient webClient;
+    private final Auth0Properties auth0Properties;
 
-    @Value("${auth0.mgmt.domain}")
-    private String domain;
-
-    @Value("${auth0.mgmt.client-id}")
-    private String clientId;
-
-    @Value("${auth0.mgmt.client-secret}")
-    private String clientSecret;
-
-    @Value("${auth0.mgmt.audience}")
-    private String audience;
-
-    public Auth0Service(WebClient.Builder webClientBuilder) {
+    public Auth0Service(WebClient.Builder webClientBuilder, Auth0Properties auth0Properties) {
         this.webClient = webClientBuilder.build();
+        this.auth0Properties = auth0Properties;
     }
 
     private String getManagementApiToken() {
         Map<String, String> request = Map.of(
                 "grant_type", "client_credentials",
-                "client_id", clientId,
-                "client_secret", clientSecret,
-                "audience", audience
+                "client_id", auth0Properties.getClientId(),
+                "client_secret", auth0Properties.getClientSecret(),
+                "audience", auth0Properties.getAudience()
         );
 
         return webClient.post()
-                .uri("https://" + domain + "/oauth/token")
+                .uri("https://" + auth0Properties.getDomain() + "/oauth/token")
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(Map.class)
@@ -53,7 +43,7 @@ public class Auth0Service {
         );
 
         webClient.post()
-                .uri("https://" + domain + "/api/v2/users")
+                .uri("https://" + auth0Properties.getDomain() + "/api/v2/users")
                 .headers(headers -> headers.setBearerAuth(token))
                 .bodyValue(requestBody)
                 .retrieve()
