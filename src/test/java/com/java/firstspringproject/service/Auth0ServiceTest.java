@@ -3,14 +3,12 @@ package com.java.firstspringproject.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.*;
 import reactor.core.publisher.Mono;
-import org.springframework.web.reactive.function.BodyInserter;
-import org.springframework.web.reactive.function.BodyInserters;
 
 import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -28,7 +26,10 @@ class Auth0ServiceTest {
     private WebClient.RequestBodyUriSpec requestBodyUriSpec;
 
     @Mock
-    private WebClient.RequestHeadersSpec<?> requestHeadersSpec;
+    private WebClient.RequestHeadersSpec requestHeadersSpec;
+
+    @Mock
+    private WebClient.RequestHeadersUriSpec<?> requestHeadersUriSpec;
 
     @Mock
     private WebClient.ResponseSpec responseSpec;
@@ -38,13 +39,11 @@ class Auth0ServiceTest {
     @BeforeEach
     void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
-
         when(webClientBuilder.build()).thenReturn(webClient);
         auth0Service = new Auth0Service(webClientBuilder);
-
         injectPrivate("clientId", "dummy-client-id");
         injectPrivate("clientSecret", "dummy-secret");
-        injectPrivate("audience", "https://dummy-api/");
+        injectPrivate("audience", "dummy-audience");
         injectPrivate("domain", "dummy-domain.auth0.com");
     }
 
@@ -58,25 +57,31 @@ class Auth0ServiceTest {
     void testCreateUserInAuth0_Success() {
         String email = "test@example.com";
         String password = "Pass@123";
+        String token = "mock_token";
 
-        // Token request
+        // --- Token request chain ---
+        Map<String, Object> tokenMap = new HashMap<>();
+        tokenMap.put("access_token", token);
+
         when(webClient.post()).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.uri(contains("oauth/token"))).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.contentType(MediaType.APPLICATION_JSON)).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.body(any(BodyInserter.class))).thenReturn(requestHeadersSpec);
+        when(requestBodyUriSpec.bodyValue(any(Map.class))).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.bodyToMono(eq(String.class)))
-                .thenReturn(Mono.just("{\"access_token\":\"mock_token\"}"));
+        when(responseSpec.bodyToMono(eq(Map.class))).thenReturn(Mono.just(tokenMap));
 
-        // User creation
+        // --- User creation chain ---
         when(webClient.post()).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.uri(contains("api/v2/users"))).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.header(eq(HttpHeaders.AUTHORIZATION), anyString())).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.contentType(MediaType.APPLICATION_JSON)).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.body(any(BodyInserter.class))).thenReturn(requestHeadersSpec);
+        // Mock headers(...) to return the same spec for chaining
+        when(requestBodyUriSpec.headers(any())).then(invocation -> {
+            // Call the headers consumer with a dummy HttpHeaders object if needed
+            return requestBodyUriSpec;
+        });
+        when(requestBodyUriSpec.bodyValue(any(Map.class))).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.bodyToMono(Void.class)).thenReturn(Mono.empty());
+        when(responseSpec.bodyToMono(eq(String.class))).thenReturn(Mono.just("{\"user_id\":\"auth0|123\"}"));
 
+        // Should not throw
         assertDoesNotThrow(() -> auth0Service.createUserInAuth0(email, password));
     }
 
@@ -85,17 +90,42 @@ class Auth0ServiceTest {
         String email = "fail@example.com";
         String password = "Pass@123";
 
+        // Token request chain fails
         when(webClient.post()).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.uri(contains("oauth/token"))).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.contentType(MediaType.APPLICATION_JSON)).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.body(any(BodyInserter.class))).thenReturn(requestHeadersSpec);
+        when(requestBodyUriSpec.bodyValue(any(Map.class))).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.bodyToMono(eq(String.class)))
-                .thenReturn(Mono.error(new RuntimeException("token failure")));
+        when(responseSpec.bodyToMono(eq(Map.class))).thenReturn(Mono.error(new RuntimeException("token failure")));
 
-        Exception ex = assertThrows(RuntimeException.class,
-                () -> auth0Service.createUserInAuth0(email, password));
-
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> auth0Service.createUserInAuth0(email, password));
         assertTrue(ex.getMessage().contains("token failure"));
+    }
+
+    @Test
+    void testCreateUserInAuth0_UserCreationFailure() {
+        String email = "failuser@example.com";
+        String password = "Pass@123";
+        String token = "mock_token";
+
+        // --- Token request chain ---
+        Map<String, Object> tokenMap = new HashMap<>();
+        tokenMap.put("access_token", token);
+
+        when(webClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri(contains("oauth/token"))).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.bodyValue(any(Map.class))).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(eq(Map.class))).thenReturn(Mono.just(tokenMap));
+
+        // --- User creation chain fails ---
+        when(webClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri(contains("api/v2/users"))).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.headers(any())).then(invocation -> requestBodyUriSpec);
+        when(requestBodyUriSpec.bodyValue(any(Map.class))).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(eq(String.class))).thenReturn(Mono.error(new RuntimeException("user creation failure")));
+
+        // Should not throw, as the error is handled in doOnError and the method is void
+        assertDoesNotThrow(() -> auth0Service.createUserInAuth0(email, password));
     }
 }
