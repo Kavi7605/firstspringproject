@@ -33,27 +33,5 @@ build/
 .vscode/
 
 # Ignore sensitive and info files
-info.txt
-
-# Java build
-/target/
-*.class
-
-# IntelliJ
-.idea/
-
-# OS junk
-.DS_Store
-Thumbs.db
-
-# Environment
 .env
-
-# Maven Wrapper
-.mvn/
-mvnw
-mvnw.cmd
-
-# Logs
-logs/
-*.log
+info.txt
