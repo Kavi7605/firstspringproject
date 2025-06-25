@@ -79,7 +79,7 @@ class Auth0ServiceTest {
         when(responseSpec.bodyToMono(eq(String.class))).thenReturn(Mono.just("{\"user_id\":\"auth0|123\"}"));
 
         // Should not throw
-        assertDoesNotThrow(() -> auth0Service.createUserInAuth0(email, password));
+        assertDoesNotThrow(() -> auth0Service.createUserInAuth0(email));
     }
 
     @Test
@@ -94,7 +94,7 @@ class Auth0ServiceTest {
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.bodyToMono(eq(Map.class))).thenReturn(Mono.error(new RuntimeException("token failure")));
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> auth0Service.createUserInAuth0(email, password));
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> auth0Service.createUserInAuth0(email));
         assertTrue(ex.getMessage().contains("token failure"));
     }
 
@@ -123,6 +123,6 @@ class Auth0ServiceTest {
         when(responseSpec.bodyToMono(eq(String.class))).thenReturn(Mono.error(new RuntimeException("user creation failure")));
 
         // Should not throw, as the error is handled in doOnError and the method is void
-        assertDoesNotThrow(() -> auth0Service.createUserInAuth0(email, password));
+        assertDoesNotThrow(() -> auth0Service.createUserInAuth0(email));
     }
 }

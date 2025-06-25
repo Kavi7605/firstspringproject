@@ -30,7 +30,7 @@ public class UserService {
         userRepository.save(user);
 
         // Save to Auth0
-        auth0Service.createUserInAuth0(request.getEmail(), request.getPassword());
+        auth0Service.createUserInAuth0(request.getEmail());
     }
 
     public Optional<User> findByEmail(String email) {
