@@ -1,4 +1,3 @@
-// src/main/java/com/java/firstspringproject/model/CreateUserRequest.java
 package com.java.firstspringproject.model;
 
 import jakarta.validation.constraints.Pattern;
@@ -12,12 +11,25 @@ public class CreateUserRequest {
     @Pattern(regexp = "^\\d{10}$", message = "Phone number must contain only digits")
     private String phoneNumber;
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    // Getters and Setters
+    public String getEmail() {
+        return email;
+    }
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    public String getPhoneNumber() { return phoneNumber; }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
 }

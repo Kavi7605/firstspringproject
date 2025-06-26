@@ -53,7 +53,6 @@ class Auth0ServiceTest {
     @Test
     void testCreateUserInAuth0_Success() {
         String email = "test@example.com";
-        String password = "Pass@123";
         String token = "mock_token";
 
         // --- Token request chain ---
@@ -85,7 +84,6 @@ class Auth0ServiceTest {
     @Test
     void testCreateUserInAuth0_TokenFailure() {
         String email = "fail@example.com";
-        String password = "Pass@123";
 
         // Token request chain fails
         when(webClient.post()).thenReturn(requestBodyUriSpec);
@@ -101,7 +99,6 @@ class Auth0ServiceTest {
     @Test
     void testCreateUserInAuth0_UserCreationFailure() {
         String email = "failuser@example.com";
-        String password = "Pass@123";
         String token = "mock_token";
 
         // --- Token request chain ---

@@ -37,7 +37,6 @@ class UserServiceTest {
         createUserRequest = new CreateUserRequest();
         createUserRequest.setEmail("test@example.com");
         createUserRequest.setName("Test User");
-        createUserRequest.setPassword("password123");
     }
 
     @Test
@@ -47,7 +46,7 @@ class UserServiceTest {
 
         // Then
         verify(userRepository).save(any(User.class));
-        verify(auth0Service).createUserInAuth0(createUserRequest.getEmail(), createUserRequest.getPassword());
+        verify(auth0Service).createUserInAuth0(createUserRequest.getEmail());
     }
 
     @Test

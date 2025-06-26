@@ -17,16 +17,16 @@ public class UserRestController {
     @Autowired
     private Auth0Service auth0Service;
 
-    // Endpoint to create user
+    // Endpoint to create user without password
     @PostMapping("/create-user")
     public ResponseEntity<String> createUser(@RequestBody CreateUserRequest request) {
-        // Check if user already exists in local database
+        // Check if user already exists in the local database
         if (userService.isUserPresent(request.getEmail())) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("⚠️ User already exists in DB.");
         }
 
         try {
-            // Create the user in the local database
+            // Create the user in the local database (without password)
             userService.createUser(request);
 
             // Create the user in Auth0 (without password) and trigger password reset

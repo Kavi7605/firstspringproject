@@ -4,23 +4,17 @@ import com.java.firstspringproject.config.Auth0Properties;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import java.util.Map;
-import com.auth0.client.mgmt.ManagementAPI;
-import com.auth0.client.mgmt.filter.UserFilter;
-import com.auth0.json.mgmt.users.UsersEntity;
-import com.auth0.json.mgmt.users.User;
 
 @Service
 public class Auth0Service {
     private final WebClient webClient;
     private final Auth0Properties auth0Properties;
 
-    // Constructor to initialize WebClient and Auth0Properties
     public Auth0Service(WebClient.Builder webClientBuilder, Auth0Properties auth0Properties) {
         this.webClient = webClientBuilder.build();
         this.auth0Properties = auth0Properties;
     }
 
-    // Method to get the management API token (OAuth client credentials flow)
     private String getManagementApiToken() {
         Map<String, String> request = Map.of(
                 "grant_type", "client_credentials",
@@ -38,14 +32,14 @@ public class Auth0Service {
                 .block();
     }
 
-    // Method to create a user in Auth0 (without a password)
+    // Create user without password
     public void createUserInAuth0(String email) {
         String token = getManagementApiToken();
 
-        // Prepare the request body with email and connection (no password)
+        // Request body to create user without password
         Map<String, Object> requestBody = Map.of(
                 "email", email,
-                "connection", "Username-Password-Authentication"
+                "connection", "Username-Password-Authentication" // Specify Auth0 connection
         );
 
         webClient.post()
@@ -55,36 +49,35 @@ public class Auth0Service {
                 .retrieve()
                 .bodyToMono(String.class)
                 .doOnError(error -> System.err.println("Auth0 creation error: " + error.getMessage()))
-                .subscribe(response -> {
+                .doOnSuccess(response -> {
                     System.out.println("Auth0 user created: " + response);
-                    // After user creation, trigger the password reset email
+                    // After creating the user, trigger password reset
                     triggerPasswordReset(email);
-                });
+                })
+                .subscribe();
     }
 
-    // Method to trigger a password reset email for the user
+    // Trigger password reset email
     public void triggerPasswordReset(String userEmail) {
         String token = getManagementApiToken();
 
-        // Fetch user by email
-        UserFilter filter = new UserFilter().withEmail(userEmail);
+        // Request body to initiate password reset
+        Map<String, Object> resetRequestBody = Map.of(
+                "client_id", auth0Properties.getClientId(),
+                "email", userEmail,
+                "connection", "Username-Password-Authentication"
+        );
 
-        try {
-            // Get the user data from Auth0
-            ManagementAPI api = new ManagementAPI("https://" + auth0Properties.getDomain(), token);
-            UsersEntity users = api.users().list(filter).execute();
-
-            if (users.getTotal() > 0) {
-                User user = users.getItems().get(0);  // Get the first user (since email is unique)
-                // Send password reset email
-                api.getEmailProvider().sendPasswordResetEmail(user.getId());
-                System.out.println("Password reset email sent to " + userEmail);
-            } else {
-                System.out.println("User not found with email: " + userEmail);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Error triggering password reset: " + e.getMessage());
-        }
+        webClient.post()
+                .uri("https://" + auth0Properties.getDomain() + "/api/v2/tickets/password-change")
+                .headers(headers -> headers.setBearerAuth(token))
+                .bodyValue(resetRequestBody)
+                .retrieve()
+                .bodyToMono(String.class)
+                .doOnError(error -> System.err.println("Password reset error: " + error.getMessage()))
+                .doOnSuccess(response -> {
+                    System.out.println("Password reset email sent: " + response);
+                })
+                .subscribe();
     }
 }
