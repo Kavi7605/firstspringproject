@@ -65,18 +65,20 @@ public class Auth0Service {
         Map<String, Object> resetRequestBody = Map.of(
                 "client_id", auth0Properties.getClientId(),
                 "email", userEmail,
-                "connection", "Username-Password-Authentication"
+                "connection", "email",
+                "send", "link", // 👈 use "code" for OTP, "link" for magic link
+                "authParams", Map.of("scope", "openid profile email")
         );
 
         webClient.post()
-                .uri("https://" + auth0Properties.getDomain() + "/api/v2/tickets/password-change")
+                .uri("https://" + auth0Properties.getDomain() + "/passwordless/start")
                 .headers(headers -> headers.setBearerAuth(token))
                 .bodyValue(resetRequestBody)
                 .retrieve()
                 .bodyToMono(String.class)
-                .doOnError(error -> System.err.println("Password reset error: " + error.getMessage()))
+                .doOnError(error -> System.err.println("Error sending magic link: " + error.getMessage()))
                 .doOnSuccess(response -> {
-                    System.out.println("Password reset email sent: " + response);
+                    System.out.println("Magic link sent to: " + response);
                 })
                 .subscribe();
     }

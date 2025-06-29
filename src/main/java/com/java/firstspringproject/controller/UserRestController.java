@@ -30,7 +30,9 @@ public class UserRestController {
             userService.createUser(request);
 
             // Create the user in Auth0 (without password) and trigger password reset
-            auth0Service.createUserInAuth0(request.getEmail());
+            //auth0Service.createUserInAuth0(request.getEmail());
+            auth0Service.triggerPasswordReset(request.getEmail());
+
 
             // Return success response
             return ResponseEntity.ok("✅ User created: " + request.getEmail());
