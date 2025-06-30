@@ -1,85 +1,88 @@
 package com.java.firstspringproject.service;
 
-import com.java.firstspringproject.config.Auth0Properties;
+import com.java.firstspringproject.model.CreateUserRequest;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.client.RestTemplate;
+
 import java.util.Map;
 
 @Service
 public class Auth0Service {
-    private final WebClient webClient;
-    private final Auth0Properties auth0Properties;
 
-    public Auth0Service(WebClient.Builder webClientBuilder, Auth0Properties auth0Properties) {
-        this.webClient = webClientBuilder.build();
-        this.auth0Properties = auth0Properties;
-    }
+    private final RestTemplate restTemplate = new RestTemplate();
 
-    private String getManagementApiToken() {
-        Map<String, String> request = Map.of(
+    @Value("${auth0.mgmt.domain}")
+    private String domain;
+
+    @Value("${auth0.mgmt.client-id}")
+    private String clientId;
+
+    @Value("${auth0.mgmt.client-secret}")
+    private String clientSecret;
+
+    @Value("${auth0.mgmt.audience}")
+    private String audience;
+
+    private String managementToken;
+
+    private void ensureManagementToken() {
+        if (managementToken != null) return;
+
+        String tokenUrl = "https://" + domain + "/oauth/token";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, String> body = Map.of(
                 "grant_type", "client_credentials",
-                "client_id", auth0Properties.getClientId(),
-                "client_secret", auth0Properties.getClientSecret(),
-                "audience", auth0Properties.getAudience()
+                "client_id", clientId,
+                "client_secret", clientSecret,
+                "audience", audience
         );
 
-        return webClient.post()
-                .uri("https://" + auth0Properties.getDomain() + "/oauth/token")
-                .bodyValue(request)
-                .retrieve()
-                .bodyToMono(Map.class)
-                .map(token -> (String) token.get("access_token"))
-                .block();
+        HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
+        ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
+        managementToken = (String) response.getBody().get("access_token");
     }
 
-    // Create user without password
-    public void createUserInAuth0(String email) {
-        String token = getManagementApiToken();
+    public String createUserWithoutPassword(CreateUserRequest req) {
+        ensureManagementToken();
 
-        // Request body to create user without password
-        Map<String, Object> requestBody = Map.of(
-                "email", email,
-                "connection", "Username-Password-Authentication" // Specify Auth0 connection
+        String url = "https://" + domain + "/api/v2/users";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(managementToken);
+
+        Map<String, Object> body = Map.of(
+                "connection", "Username-Password-Authentication",
+                "email", req.getEmail(),
+                "name", req.getName(),
+                "phone_number", req.getPhoneNumber(),
+                "password", "TempPass@12345",  // <- required field for this connection
+                "email_verified", false
         );
 
-        webClient.post()
-                .uri("https://" + auth0Properties.getDomain() + "/api/v2/users")
-                .headers(headers -> headers.setBearerAuth(token))
-                .bodyValue(requestBody)
-                .retrieve()
-                .bodyToMono(String.class)
-                .doOnError(error -> System.err.println("Auth0 creation error: " + error.getMessage()))
-                .doOnSuccess(response -> {
-                    System.out.println("Auth0 user created: " + response);
-                    // After creating the user, trigger password reset
-                    triggerPasswordReset(email);
-                })
-                .subscribe();
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+        ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
+
+        return (String) response.getBody().get("user_id");
     }
 
-    // Trigger password reset email
-    public void triggerPasswordReset(String userEmail) {
-        String token = getManagementApiToken();
+    public void sendPasswordResetEmail(String auth0UserId) {
+        ensureManagementToken();
 
-        // Request body to initiate password reset
-        Map<String, Object> resetRequestBody = Map.of(
-                "client_id", auth0Properties.getClientId(),
-                "email", userEmail,
-                "connection", "email",
-                "send", "link", // 👈 use "code" for OTP, "link" for magic link
-                "authParams", Map.of("scope", "openid profile email")
-        );
+        String url = "https://" + domain + "/api/v2/tickets/password-change";
 
-        webClient.post()
-                .uri("https://" + auth0Properties.getDomain() + "/passwordless/start")
-                .headers(headers -> headers.setBearerAuth(token))
-                .bodyValue(resetRequestBody)
-                .retrieve()
-                .bodyToMono(String.class)
-                .doOnError(error -> System.err.println("Error sending magic link: " + error.getMessage()))
-                .doOnSuccess(response -> {
-                    System.out.println("Magic link sent to: " + response);
-                })
-                .subscribe();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(managementToken);
+
+        Map<String, Object> body = Map.of("user_id", auth0UserId);
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+        restTemplate.postForEntity(url, request, Map.class);
     }
 }

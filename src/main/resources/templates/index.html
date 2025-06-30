@@ -21,7 +21,6 @@
     </a>
 </div>
 
-
 <form method="get" action="/oauth2/authorization/auth0">
     <button type="submit">Login with Auth0</button>
 </form>
@@ -32,10 +31,11 @@
 <form id="createForm">
     <input type="text" name="email" placeholder="Email" required />
     <input type="text" name="name" placeholder="Name" required />
-    <input type="text" name="phoneNumber" placeholder="Phone Number (10 digits)" required minlength="10" maxlength="10" pattern="\d{10}" />
+    <input type="text" name="phoneNumber" placeholder="Phone Number (+CountryCode + 10 digits)" required
+           pattern="^\+\d{1,4}\d{10}$"
+           title="Phone number must be in the format: +<CountryCode><10 digits>, e.g., +911234567890" />
     <button type="submit">Create User</button>
 </form>
-
 
 <p id="createStatus" style="color: darkblue;"></p>
 
@@ -47,12 +47,11 @@
         const data = {
             email: formData.get('email'),
             name: formData.get('name'),
-            password: formData.get('password'),
             phoneNumber: formData.get('phoneNumber')
         };
 
         const baseUrl = window.location.origin;
-        const createUserUrl = `${baseUrl}/api/create-user`;
+        const createUserUrl = `${baseUrl}/api/users/register`;
 
         const response = await fetch(createUserUrl, {
             method: 'POST',

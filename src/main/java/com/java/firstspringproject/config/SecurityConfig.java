@@ -18,7 +18,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/profile").authenticated()
-                        .requestMatchers("/api/create-user").permitAll()  // ✅ allow this
+                        .requestMatchers("/api/users/register").permitAll()
                         .anyRequest().permitAll()
                 )
 

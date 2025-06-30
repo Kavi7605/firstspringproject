@@ -1,39 +1,39 @@
-// src/main/java/com/java/firstspringproject/service/UserService.java
 package com.java.firstspringproject.service;
 
 import com.java.firstspringproject.model.CreateUserRequest;
 import com.java.firstspringproject.model.User;
 import com.java.firstspringproject.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 
 @Service
 public class UserService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final Auth0Service auth0Service;
 
-    @Autowired
-    private Auth0Service auth0Service;
-
-    public boolean isUserPresent(String email) {
-        return userRepository.findByEmail(email).isPresent();
-    }
-
-    public void createUser(CreateUserRequest request) {
-        // Save to local DB
-        User user = new User();
-        user.setEmail(request.getEmail());
-        user.setName(request.getName());
-        userRepository.save(user);
-
-        // Save to Auth0
-        auth0Service.createUserInAuth0(request.getEmail());
+    public UserService(UserRepository userRepository, Auth0Service auth0Service) {
+        this.userRepository = userRepository;
+        this.auth0Service = auth0Service;
     }
 
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+
+    @Transactional
+    public User registerWithoutPassword(CreateUserRequest req) {
+        String auth0UserId = auth0Service.createUserWithoutPassword(req);
+        auth0Service.sendPasswordResetEmail(auth0UserId);
+
+        User user = new User();
+        user.setAuth0Id(auth0UserId);
+        user.setEmail(req.getEmail());
+        user.setName(req.getName());
+        user.setPhoneNumber(req.getPhoneNumber());
+
+        return userRepository.save(user);
     }
 }

@@ -5,113 +5,47 @@ import com.java.firstspringproject.model.User;
 import com.java.firstspringproject.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.ArgumentCaptor;
 
-import java.util.Optional;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.*;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+public class UserServiceTest {
 
-@ExtendWith(MockitoExtension.class)
-class UserServiceTest {
-
-    @Mock
+    private UserService userService;
+    private Auth0Service auth0Service;
     private UserRepository userRepository;
 
-    @Mock
-    private Auth0Service auth0Service;
-
-    @InjectMocks
-    private UserService userService;
-
-    private CreateUserRequest createUserRequest;
-
     @BeforeEach
-    void setUp() {
-        createUserRequest = new CreateUserRequest();
-        createUserRequest.setEmail("test@example.com");
-        createUserRequest.setName("Test User");
+    public void setUp() {
+        auth0Service = mock(Auth0Service.class);
+        userRepository = mock(UserRepository.class);
+        userService = new UserService(userRepository, auth0Service);
     }
 
     @Test
-    void createUser_ShouldSaveUserToDbAndAuth0() {
-        // When
-        userService.createUser(createUserRequest);
+    public void testRegisterWithoutPassword_CreatesAuth0UserAndSavesLocally() {
+        CreateUserRequest req = new CreateUserRequest();
+        req.setEmail("test@example.com");
+        req.setName("Test User");
+        req.setCountryCode("+91");
+        req.setLocalPhoneNumber("1234567890");
 
-        // Then
-        verify(userRepository).save(any(User.class));
-        verify(auth0Service).createUserInAuth0(createUserRequest.getEmail());
-    }
+        when(auth0Service.createUserWithoutPassword(req)).thenReturn("auth0|abc123");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-    @Test
-    void isUserPresent_WhenUserExists_ShouldReturnTrue() {
-        // Given
-        String email = "test@example.com";
-        User user = new User();
-        user.setEmail(email);
-        user.setName("Test User");
+        User result = userService.registerWithoutPassword(req);
 
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        verify(auth0Service).createUserWithoutPassword(req);
+        verify(auth0Service).sendPasswordResetEmail("auth0|abc123");
 
-        // When
-        boolean result = userService.isUserPresent(email);
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
 
-        // Then
-        assertTrue(result);
-        verify(userRepository).findByEmail(email);
-    }
-
-    @Test
-    void isUserPresent_WhenUserDoesNotExist_ShouldReturnFalse() {
-        // Given
-        String email = "nonexistent@example.com";
-        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
-
-        // When
-        boolean result = userService.isUserPresent(email);
-
-        // Then
-        assertFalse(result);
-        verify(userRepository).findByEmail(email);
-    }
-
-    @Test
-    void findByEmail_WhenUserExists_ShouldReturnUser() {
-        // Given
-        String email = "test@example.com";
-        User expectedUser = new User();
-        expectedUser.setEmail(email);
-        expectedUser.setName("Test User");
-
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(expectedUser));
-
-        // When
-        Optional<User> result = userService.findByEmail(email);
-
-        // Then
-        assertTrue(result.isPresent());
-        assertEquals(email, result.get().getEmail());
-        assertEquals("Test User", result.get().getName());
-        verify(userRepository).findByEmail(email);
-    }
-
-    @Test
-    void findByEmail_WhenUserDoesNotExist_ShouldReturnEmptyOptional() {
-        // Given
-        String email = "nonexistent@example.com";
-        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
-
-        // When
-        Optional<User> result = userService.findByEmail(email);
-
-        // Then
-        assertFalse(result.isPresent());
-        verify(userRepository).findByEmail(email);
+        User saved = captor.getValue();
+        assertEquals("test@example.com", saved.getEmail());
+        assertEquals("1234567890", saved.getPhoneNumber());
+        assertEquals("Test User", saved.getName());
+        assertEquals("auth0|abc123", saved.getAuth0Id());
     }
 }

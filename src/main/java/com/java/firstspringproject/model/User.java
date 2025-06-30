@@ -2,12 +2,16 @@
 package com.java.firstspringproject.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import java.util.Objects;
 
 @Entity
 @Table(name = "app_user")  // ✅ match your DB table
 public class User {
+
+    @Column(name = "auth0_id")
+    private String auth0Id;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)  // ✅ auto-generate the ID
@@ -19,9 +23,10 @@ public class User {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "phone_number", length = 10)
-    @Pattern(regexp = "^\\d{10}$", message = "Phone number must be exactly 10 digits")
+    @NotBlank
+    @Pattern(regexp = "^\\+\\d{1,3}\\d{10}$", message = "Phone number must start with country code and contain 10 digits")
     private String phoneNumber;
+
 
     // Getters and Setters
     public Long getId() { return id; }
@@ -35,6 +40,13 @@ public class User {
 
     public String getPhoneNumber() { return phoneNumber; }
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
+    public String getAuth0Id() {
+        return auth0Id;
+    }
+    public void setAuth0Id(String auth0Id) {
+        this.auth0Id = auth0Id;
+    }
 
     @Override
     public boolean equals(Object o) {
