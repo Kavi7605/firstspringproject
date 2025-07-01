@@ -26,7 +26,7 @@ public class UserService {
     @Transactional
     public User registerWithoutPassword(CreateUserRequest req) {
         String auth0UserId = auth0Service.createUserWithoutPassword(req);
-        auth0Service.sendPasswordResetEmail(auth0UserId);
+//        auth0Service.sendPasswordResetEmail(auth0UserId);
 
         User user = new User();
         user.setAuth0Id(auth0UserId);

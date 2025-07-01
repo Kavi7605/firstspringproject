@@ -3,6 +3,7 @@ package com.java.firstspringproject.controller;
 import com.java.firstspringproject.model.CreateUserRequest;
 import com.java.firstspringproject.model.User;
 import com.java.firstspringproject.service.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -21,10 +22,13 @@ public class UserRestController {
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Validated @RequestBody CreateUserRequest req) {
-        User user = userService.registerWithoutPassword(req);
+        try {
+            User user = userService.registerWithoutPassword(req);
         return ResponseEntity.ok(Map.of(
                 "message", "User registered. Password reset email sent.",
                 "email", user.getEmail()
-        ));
+        ));}catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        }
     }
 }

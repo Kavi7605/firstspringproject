@@ -4,6 +4,7 @@ import com.java.firstspringproject.model.CreateUserRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
@@ -61,28 +62,40 @@ public class Auth0Service {
                 "email", req.getEmail(),
                 "name", req.getName(),
                 "phone_number", req.getPhoneNumber(),
-                "password", "TempPass@12345",  // <- required field for this connection
-                "email_verified", false
+                "password", "TempPass@12345",
+                "email_verified", true
         );
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-        ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
 
-        return (String) response.getBody().get("user_id");
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
+            String userId = (String) response.getBody().get("user_id");
+
+            sendPasswordResetEmail(req.getEmail());
+            return userId;
+
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode() == HttpStatus.CONFLICT) {
+                throw new RuntimeException("❌ Auth0 user already exists for this email/phone.");
+            }
+            throw e;
+        }
     }
 
-    public void sendPasswordResetEmail(String auth0UserId) {
-        ensureManagementToken();
-
-        String url = "https://" + domain + "/api/v2/tickets/password-change";
+    public void sendPasswordResetEmail(String email) {
+        String url = "https://" + domain + "/dbconnections/change_password";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(managementToken);
 
-        Map<String, Object> body = Map.of("user_id", auth0UserId);
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+        Map<String, String> body = Map.of(
+                "client_id", clientId,
+                "email", email,
+                "connection", "Username-Password-Authentication"
+        );
 
-        restTemplate.postForEntity(url, request, Map.class);
+        HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
+        restTemplate.postForEntity(url, request, String.class);
     }
 }

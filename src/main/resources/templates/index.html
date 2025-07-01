@@ -34,36 +34,44 @@
     <input type="text" name="phoneNumber" placeholder="Phone Number (+CountryCode + 10 digits)" required
            pattern="^\+\d{1,4}\d{10}$"
            title="Phone number must be in the format: +<CountryCode><10 digits>, e.g., +911234567890" />
+    <input type="text" name="auth0Id" placeholder="Auth0 ID" required>
     <button type="submit">Create User</button>
 </form>
 
 <p id="createStatus" style="color: darkblue;"></p>
 
 <script>
-    document.getElementById('createForm').addEventListener('submit', async function(e) {
+    document.getElementById("createForm").addEventListener("submit", async function (e) {
         e.preventDefault();
 
-        const formData = new FormData(e.target);
-        const data = {
-            email: formData.get('email'),
-            name: formData.get('name'),
-            phoneNumber: formData.get('phoneNumber')
+        const email = this.email.value;
+        const name = this.name.value;
+        const phoneFull = this.phoneNumber.value; // e.g., +919427456773
+        const countryCode = phoneFull.slice(0, 3); // or better logic
+        const localPhoneNumber = phoneFull.slice(3); // adjust slicing as needed
+
+        const body = {
+            email,
+            name,
+            countryCode,
+            localPhoneNumber
         };
 
-        const baseUrl = window.location.origin;
-        const createUserUrl = `${baseUrl}/api/users/register`;
-
-        const response = await fetch(createUserUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
+        const res = await fetch("/api/users/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
         });
 
-        const text = await response.text();
-        document.getElementById('createStatus').innerText = text;
+        const msg = document.getElementById("createStatus");
+        if (res.ok) {
+            const data = await res.json();
+            msg.textContent = "✅ " + data.message;
+        } else {
+            msg.textContent = "❌ Failed";
+        }
     });
+
 </script>
 
 </body>

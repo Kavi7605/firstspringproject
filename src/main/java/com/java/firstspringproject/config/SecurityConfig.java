@@ -18,7 +18,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/profile").authenticated()
-                        .requestMatchers("/api/users/register").permitAll()
+                        .requestMatchers("/api/users/register").authenticated()
                         .anyRequest().permitAll()
                 )
 
